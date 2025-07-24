@@ -1,0 +1,163 @@
+---
+title: "Assignment 03"
+author: "Chandima Attanayake"
+date: "2025-04-26"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+**Part A**
+
+*QA1. Difference between SVM with hard margin and soft margin*
+
+Hard Margin SVM assumes that the data is perfectly separable — it tries to find a hyperplane that separates the data without any errors (no points are allowed inside the margin).
+
+Soft Margin SVM allows for some misclassifications as it introduces slack variables to tolerate violations, aiming for better generalization to unseen data.
+
+
+*QA2. Role of the cost parameter (C) in Soft Margin Classifier(SVM)*
+
+The C parameter controls the trade-off between achieving a low training error and a low testing error.
+
+A high C tries to classify all training examples correctly (less tolerance for errors, less regularization).
+
+A low C allows more misclassifications but improves the generalization (more regularization).
+
+*QA3. Perceptron Activation*
+
+Calulcation of Activation = (x1 × w1) + (x2 × w2) + bias
+=(0.1×0.8)+(11.1×−0.2)+2.8
+= 0.66
+
+The perceptron activation output is 0.66.
+
+
+
+*QA4. Role of alpha (learning rate) in the delta rule*
+
+The learning rate alpha determines how much the weights are adjusted during each step of learning.
+
+A small alpha leads to slow but stable convergence.
+
+A large alpha can make learning faster but risks overshooting the optimal solution.
+
+
+**Part B**
+
+
+
+```{r}
+# Load Libraries
+library(ISLR)
+library(dplyr)
+library(glmnet)
+library(caret)
+
+# Select Required Variables
+Carseats_Filtered <- Carseats %>%
+  select(Sales, Price, Advertising, Population, Age, Income, Education)
+
+
+```
+
+*QB1. Build Linear SVM Regression Model*
+
+```{r}
+# Set seed for reproducibility
+set.seed(123)
+
+# Train Linear SVM model
+svm_model <- train(Sales ~ ., data = Carseats_Filtered,
+                   method = "svmLinear",
+                   trControl = trainControl(method = "cv", number = 5))
+
+# Check model results
+print(svm_model)
+
+# Get R-squared
+svm_model$results$Rsquared
+
+
+
+```
+
+*QB2. Customize the Search Grid for Different C Values*
+
+```{r}
+# Set custom tuning grid
+grid <- expand.grid(C = c(0.1, 0.5, 1, 10))
+
+# Train the model with customized grid
+svm_model_grid <- train(Sales ~ ., data = Carseats_Filtered,
+                        method = "svmLinear",
+                        tuneGrid = grid,
+                        trControl = trainControl(method = "repeatedcv",
+                                                 number = 5, repeats = 2))
+
+# Check model results
+print(svm_model_grid)
+
+
+
+```
+*QB3. Train a Neural Network Model*
+
+```{r}
+# Preprocess (Scale and Center)
+preproc <- preProcess(Carseats_Filtered, method = c("center", "scale"))
+Carseats_Scaled <- predict(preproc, Carseats_Filtered)
+
+# Train Neural Network
+set.seed(123)
+nn_model <- train(Sales ~ ., data = Carseats_Scaled,
+                  method = "nnet",
+                  trControl = trainControl(method = "cv", number = 5),
+                  linout = TRUE, trace = FALSE)
+
+# Check model results
+print(nn_model)
+
+# Get R-squared
+nn_model$results$Rsquared
+
+
+
+```
+
+*QB4. Predict Sales for New Input Using Neural Net Model*
+
+```{r}
+
+# New input data
+new_data <- data.frame(
+  Sales = 9,
+  Price = 6.54,
+  Advertising = 0,
+  Population = 124,
+  Age = 76,
+  Income = 110,
+  Education = 10
+)
+
+# Scale new data
+new_data_scaled <- predict(preproc, new_data)
+
+# Drop 'Sales' before prediction
+new_data_scaled <- new_data_scaled %>% select(-Sales)
+
+# Predict Sales using the trained neural network model
+predicted_sales <- predict(nn_model, newdata = new_data_scaled)
+
+# Output predicted sales
+predicted_sales
+
+
+```
+
+
